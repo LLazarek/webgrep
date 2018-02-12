@@ -53,7 +53,7 @@ def unique(iterable, key=None):
                 seen_add(k)
                 yield element
 
-def visit(link, http, urlPat, contentPat, maxDepth, depth = 0):
+def visit(link, http, urlPat, contentPat, negate, maxDepth, depth = 0):
     if depth <= maxDepth:
         try:
             status, response = http.request(link)
@@ -62,7 +62,9 @@ def visit(link, http, urlPat, contentPat, maxDepth, depth = 0):
         htmlSoup = BeautifulSoup(response)
         
         contentMatches = search(htmlSoup, contentPat)
-        thisResult = [(link, contentMatches)] if contentMatches else []
+        thisResult = [(link, contentMatches)] \
+                     if (bool(contentMatches) ^ negate) \
+                     else []
 
         linksToFollow = unique(relevantLinks(htmlSoup, link, urlPat))
         childrenResults = list(flatMap(ft.partial(visit,
@@ -98,8 +100,10 @@ def visit_print(link, http, urlPat, contentPat, negate, maxDepth, depth = 0):
                         contentPat, negate,
                         maxDepth, depth + 1)
 
-def wgrep(link, urlPat, contentPat, maxDepth, depth = 0):
-    return visit(link, httplib2.Http(), urlPat, contentPat, maxDepth, depth)
+def wgrep(link, urlPat, contentPat, negate, maxDepth, depth = 0):
+    return visit(link, httplib2.Http(),
+                 urlPat, contentPat, negate,
+                 maxDepth, depth)
 
 def wgrep_print(link, urlPat, contentPat, negate, maxDepth, depth = 0):
     return visit_print(link, httplib2.Http(),
