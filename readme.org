@@ -1,0 +1,36 @@
+#+TITLE: Webgrep: grep the web
+
+* What?
+This is a tool for performing recursive regular expression content searches of a webpage.
+/Recursive/ here means exploring pages linked to in the content of a page.
+
+* Dependencies
+- Python 2.7
+- [[https://www.crummy.com/software/BeautifulSoup/][BeautifulSoup]]
+
+* Usage
+#+BEGIN_EXAMPLE
+usage: wgrep.py [-h] [-l LINK] [-u URLS] [-c CONTENT] [-d DEPTH] [-n]
+
+optional arguments:
+  -h, --help            show this help message and exit
+  -l LINK, --link LINK  The link to root the search. *This is a mandatory
+                        argument.*
+  -u URLS, --urls URLS  Regexp for urls to search. By default all urls are
+                        searched.
+  -c CONTENT, --content CONTENT
+                        Regexp for page content to find. *This is a mandatory
+                        argument.*
+  -d DEPTH, --depth DEPTH
+                        The page depth to search. Default: 2.
+  -n, --negate          Negate content regexp: Print only page urls that do
+                        *not* contain the content pattern.
+#+END_EXAMPLE
+
+* Future work
+- Pretty printing with colors
+- More machine-parsable output
+- Option for case sensitivity
+- Multiple patterns
+- Improve performance (?)
+
