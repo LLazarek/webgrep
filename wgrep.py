@@ -77,7 +77,7 @@ def visit(link, http, urlPat, contentPat, maxDepth, depth = 0):
     else:
         return []
 
-def visit_print(link, http, urlPat, contentPat, maxDepth, depth = 0):
+def visit_print(link, http, urlPat, contentPat, negate, maxDepth, depth = 0):
     if depth <= maxDepth:
         try:
             status, response = http.request(link)
@@ -86,23 +86,24 @@ def visit_print(link, http, urlPat, contentPat, maxDepth, depth = 0):
         htmlSoup = BeautifulSoup(response)
         
         contentMatches = search(htmlSoup, contentPat)
-        if contentMatches:
+        if contentMatches and not negate:
             display((link, contentMatches))
+        elif not contentMatches and negate:
+            print(link)
 
         linksToFollow = unique(relevantLinks(htmlSoup, link, urlPat))
-        childrenResults = list(flatMap(ft.partial(visit,
-                                                  http=http,
-                                                  urlPat=urlPat,
-                                                  contentPat=contentPat,
-                                                  maxDepth=maxDepth,
-                                                  depth=(depth+1)),
-                                       linksToFollow))
+        assert(linksToFollow is not None)
+        for childLink in linksToFollow:
+            visit_print(childLink, http, urlPat,
+                        contentPat, negate,
+                        maxDepth, depth + 1)
 
 def wgrep(link, urlPat, contentPat, maxDepth, depth = 0):
     return visit(link, httplib2.Http(), urlPat, contentPat, maxDepth, depth)
 
-def wgrep_print(link, urlPat, contentPat, maxDepth, depth = 0):
-    return visit_print(link, httplib2.Http(), urlPat, contentPat,
+def wgrep_print(link, urlPat, contentPat, negate, maxDepth, depth = 0):
+    return visit_print(link, httplib2.Http(),
+                       urlPat, contentPat, negate,
                        maxDepth, depth)
 
 def display(wgrep_result):
@@ -129,6 +130,10 @@ def parseArgs():
     parser.add_argument("-d", "--depth", type=int, default="2",
                         help="The page depth to search. "
                         "Default: 2.")
+    parser.add_argument("-n", "--negate", action="store_true",
+                        help="Negate content regexp: "
+                        "Print only page urls that do *not* contain "
+                        "the content pattern.")
     return parser.parse_args()
 
 def main():
@@ -138,7 +143,7 @@ def main():
         print("Missing mandatory argument(s). Try -h for help.")
         return 1
 
-    wgrep_print(args.link, args.urls, args.content, args.depth)
+    wgrep_print(args.link, args.urls, args.content, args.negate, args.depth)
     return 0
 
 
