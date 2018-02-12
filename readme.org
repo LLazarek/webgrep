@@ -4,10 +4,6 @@
 This is a tool for performing recursive regular expression content searches of a webpage.
 /Recursive/ here means exploring pages linked to in the content of a page.
 
-* Dependencies
-- Python 2.7
-- [[https://www.crummy.com/software/BeautifulSoup/][BeautifulSoup]]
-
 * Usage
 #+BEGIN_EXAMPLE
 usage: wgrep.py [-h] [-l LINK] [-u URLS] [-c CONTENT] [-d DEPTH] [-n]
@@ -27,6 +23,10 @@ optional arguments:
                         *not* contain the content pattern.
 #+END_EXAMPLE
 
+* Dependencies
+- Python 2.7
+- [[https://www.crummy.com/software/BeautifulSoup/][BeautifulSoup]]
+
 * Future work
 - Pretty printing with colors
 - More machine-parsable output
@@ -34,3 +34,16 @@ optional arguments:
 - Multiple patterns
 - Improve performance (?)
 
+* License
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program.  If not, see <http://www.gnu.org/licenses/>.
