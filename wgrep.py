@@ -30,7 +30,8 @@ def main():
         print("Missing mandatory argument(s). Try -h for help.")
         return 1
 
-    wgrep_print(args.link, args.urls, args.content, args.negate, args.depth)
+    wgrep(args.link, args.urls, args.content, args.negate, args.depth,
+          displayResult=True)
     return 0
 
 
@@ -87,9 +88,11 @@ def unique(iterable, element_transformer=None):
                 seen.add(k)
                 yield element
 
-# visit:
-# Link Http Regexp Regexp Bool Int [Int=0] -> List[(Link, List[re.Match])]
-def visit(link, http, urlPat, contentPat, negate, maxDepth, depth = 0):
+# visit: Link Http Regexp Regexp Bool Int [Int=0 Bool=True]
+#        ->
+#        List[(Link, List[re.Match])]
+def visit(link, http, urlPat, contentPat, negate, maxDepth,
+          depth = 0, displayResult = True):
     if depth <= maxDepth:
         try:
             status, response = http.request(link)
@@ -98,57 +101,37 @@ def visit(link, http, urlPat, contentPat, negate, maxDepth, depth = 0):
         htmlSoup = BeautifulSoup(response)
         
         contentMatches = search(htmlSoup, contentPat)
-        thisResult = [(link, contentMatches)] \
-                     if (bool(contentMatches) ^ negate) \
-                     else []
+        includeMatch = (contentMatches     and not negate) or \
+                       (not contentMatches and negate)
+        thisResult = [(link, contentMatches)] if includeMatch else []
+        if displayResult and thisResult:
+            display(thisResult[0])
 
         linksToFollow = unique(relevantLinks(htmlSoup, link, urlPat))
         childrenResults = list(flatMap(ft.partial(visit,
                                                   http=http,
                                                   urlPat=urlPat,
                                                   contentPat=contentPat,
+                                                  negate=negate,
                                                   maxDepth=maxDepth,
-                                                  depth=(depth+1)),
+                                                  depth=(depth+1),
+                                                  displayResult=displayResult),
                                        linksToFollow))
 
         return thisResult + childrenResults
+
     else:
         return []
 
-# visit_print: Link Http Regexp Regexp Bool Int [Int=0] -> None
-def visit_print(link, http, urlPat, contentPat, negate, maxDepth, depth = 0):
-    if depth <= maxDepth:
-        try:
-            status, response = http.request(link)
-        except:
-            response = ""
-        htmlSoup = BeautifulSoup(response)
-        
-        contentMatches = search(htmlSoup, contentPat)
-        if contentMatches and not negate:
-            display((link, contentMatches))
-        elif not contentMatches and negate:
-            print(link)
-
-        linksToFollow = unique(relevantLinks(htmlSoup, link, urlPat))
-        for childLink in linksToFollow:
-            visit_print(childLink, http, urlPat,
-                        contentPat, negate,
-                        maxDepth, depth + 1)
-
-
-# wgrep:
-# Link Http Regexp Regexp Bool Int [Int=0] -> List[(Link, List[re.Match])]
-def wgrep(link, urlPat, contentPat, negate, maxDepth, depth = 0):
+# wgrep: Link Http Regexp Regexp Bool Int [Int=0 Bool=True]
+#        ->
+#        List[(Link, List[re.Match])]
+def wgrep(link, urlPat, contentPat, negate, maxDepth,
+          depth = 0, displayResult = True):
     return visit(link, httplib2.Http(),
                  urlPat, contentPat, negate,
-                 maxDepth, depth)
-
-# wgrep_print: Link Http Regexp Regexp Bool Int [Int=0] -> None
-def wgrep_print(link, urlPat, contentPat, negate, maxDepth, depth = 0):
-    return visit_print(link, httplib2.Http(),
-                       urlPat, contentPat, negate,
-                       maxDepth, depth)
+                 maxDepth, depth,
+                 displayResult=displayResult)
 
 # display: (Link, List[re.Match]) -> None
 def display(wgrep_result):
