@@ -1,9 +1,18 @@
-#lang at-exp racket
+#lang at-exp racket/base
 
-(require #;html-parsing
-         net/url
+(require net/url
+         racket/contract/base
+         racket/contract/region
+         racket/format
+         racket/function
+         racket/hash
+         racket/list
+         racket/match
+         racket/math
+         racket/port
          racket/promise
-         racket/hash)
+         racket/set
+         racket/string)
 
 (define (url->content! url-string)
   (with-handlers ([url-exception? (thunk* "")])
@@ -15,13 +24,11 @@
 
 ;; url? (listof regexp?) regexp? -> (promise/c page?)
 (define (launch-page-search! url depth content-pats url-pat)
-  ;; (displayln @~a{Searching: @url})
   (delay/thread
    (define content (url->content! url))
    (define content-matches (flatten
                             (map (λ (pat) (regexp-match* pat content))
                                  content-pats)))
-   ;; (displayln @~a{Content matches? @(not (empty? content-matches))})
    (define children (urls-matching url-pat content #:base url))
    (page url depth content-matches children)))
 
@@ -112,6 +119,7 @@ HERE
                                      (append a b))))))
 
 (module+ test
+  (require (for-syntax racket/base))
   (define-test-syntax (test-search-results promises
                                            todos-pat
                                            children-pat
