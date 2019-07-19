@@ -79,8 +79,9 @@ HERE
 
 
 (define ((normalize-relative-url base-url) url)
-  (if (string-prefix? url "/")
-      (string-append base-url url)
+  (if (or (string-prefix? url "/")
+          (not (regexp-match? #px"http(s)?://" url)))
+      (url->string (combine-url/relative (string->url base-url) url))
       url))
 
 ;; results? := (hash/c url? (listof string?))
