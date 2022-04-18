@@ -1,4 +1,4 @@
-#lang at-exp racket/base
+#lang at-exp racket
 
 (require net/url
          racket/contract/base
@@ -15,7 +15,8 @@
          racket/string)
 
 (define (url->content! url-string)
-  (with-handlers ([url-exception? (thunk* "")])
+  (with-handlers ([url-exception? (thunk* "")]
+                  [exn:fail? (thunk* "")])
     (call/input-url (string->url url-string)
                     get-pure-port
                     port->string)))
@@ -104,9 +105,11 @@ HERE
       (match* {print-progress? (length content-matches)}
         [{'url (not 0)} (displayln url)]
         [{'all (not 0)} (displayln
-                         @~a{@url
+                         @~a{
+                             @url
                              ==================================================
                              @~v[content-matches]
+
                              })]
         [{_ _} (void)])
       (values (map (λ (child) (todo child (add1 depth))) children)
@@ -199,7 +202,8 @@ HERE
   (let loop ([links-todo (list (todo base-url 0))]
              [links-waiting empty]
              [urls->children (hash)]
-             [search-results (hash)])
+             [search-results (hash)]
+             [searched (set)])
     (cond [(or (>= (length links-waiting) thread-limit)
                (and (empty? links-todo)
                     (not (empty? links-waiting))))
@@ -215,7 +219,8 @@ HERE
                              #:combine (λ (a b) a))
                  (hash-union search-results new-matches
                              #:combine (λ (a b) (remove-duplicates
-                                                 (append a b)))))]
+                                                 (append a b))))
+                 searched)]
           [else
            (match links-todo
              ['() search-results]
@@ -226,21 +231,30 @@ HERE
               (loop (append unseen-links-todo (rest links-todo))
                     links-waiting
                     urls->children
-                    search-results)]
+                    search-results
+                    searched)]
              [(cons (todo url url-depth) todos-rest)
-              (loop (rest links-todo)
+              #:when (set-member? searched url)
+              (loop todos-rest
+                    links-waiting
+                    urls->children
+                    search-results
+                    searched)]
+             [(cons (todo url url-depth) todos-rest)
+              (loop todos-rest
                     (if (<= url-depth depth)
                         (cons (launch-page-search! url url-depth
                                                    content-pats url-pat)
                               links-waiting)
                         links-waiting)
                     urls->children
-                    search-results)])])))
+                    search-results
+                    (set-add searched url))])])))
 
 (module+ main
-  (require cmdline2)
+  (require rscript/cmdline)
   (match-define (cons flags args)
-    (command-line*
+    (command-line/declarative
      #:multi
      [("-c" "--content-pat")
       'content-pats
@@ -251,7 +265,7 @@ HERE
       'url-pat
       ("Pattern of links to find in page contents."
        "Default: any link")
-      #:collect ["regexp" take-latest #px".*"]]
+      #:collect ["regexp" take-latest ".*"]]
      [("-r" "--root")
       'root-url
       "Url at which to root search."
@@ -272,11 +286,15 @@ HERE
       ("Maximum number of threads to search in parallel."
        "Default: 50")
       #:collect ["natural" take-latest "50"]]))
+  (file-stream-buffer-mode (current-output-port) 'line)
+  (define full-line-content-pats
+    (map (λ (pat) @~a{(?m:^.*@|pat|.*$)})
+         (hash-ref flags 'content-pats)))
   (void
    (find-matches-in!
     (hash-ref flags 'root-url)
-    (hash-ref flags 'content-pats)
-    (hash-ref flags 'url-pat)
+    full-line-content-pats
+    (pregexp (hash-ref flags 'url-pat))
     (string->number (hash-ref flags 'depth))
     #:thread-limit (string->number (hash-ref flags 'thread-limit))
     #:print-progress? (if (hash-ref flags 'links-only)
