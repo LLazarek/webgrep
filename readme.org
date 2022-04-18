@@ -45,7 +45,7 @@ optional arguments:
 
 * Dependencies
 Racket version:
-- Racket 7
+- Racket >= 7
 - [[https://github.com/LLazarek/ruinit][ruinit]]
 - [[https://github.com/LLazarek/rscript][rscript]]
 
