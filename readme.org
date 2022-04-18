@@ -46,8 +46,8 @@ optional arguments:
 * Dependencies
 Racket version:
 - Racket 7
-- ruinit
-- cmdline2
+- [[https://github.com/LLazarek/ruinit][ruinit]]
+- [[https://github.com/LLazarek/rscript][rscript]]
 
 Python version:
 - Python 2.7
