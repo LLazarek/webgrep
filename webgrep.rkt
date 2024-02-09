@@ -14,6 +14,8 @@
          racket/set
          racket/string)
 
+(define-logger webgrep)
+
 (define (url->content! url-string)
   (with-handlers ([url-exception? (thunk* "")]
                   [exn:fail? (thunk* "")])
@@ -26,6 +28,7 @@
 ;; url? (listof regexp?) regexp? -> (promise/c page?)
 (define (launch-page-search! url depth content-pats url-pat)
   (delay/thread
+   (log-webgrep-info @~a{Searching: @url})
    (define content (url->content! url))
    (define content-matches (flatten
                             (map (λ (pat) (regexp-match* pat content))
@@ -37,14 +40,19 @@
   (define url-pat
     (pregexp
      #<<HERE
-a +href *= *["']([^#][^ "]*)["']
+a[^>]+href *= *["']([^#][^ "]*)["']
 HERE
      ))
   (define all-urls (regexp-match* url-pat content #:match-select cadr))
   (define all-urls/normalized
     (map (normalize-relative-url base-url) all-urls))
   (remove-duplicates
-   (filter (λ (url) (regexp-match? pat url)) all-urls/normalized)))
+   (filter (λ (url)
+             (define keep? (regexp-match? pat url))
+             (log-webgrep-debug
+              @~a{@(if keep? "Including" "Skipping") link @url due to user-supplied regexps})
+             keep?)
+           all-urls/normalized)))
 
 (module+ test
   (require ruinit)
